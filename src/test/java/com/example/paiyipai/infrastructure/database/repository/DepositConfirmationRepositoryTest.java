@@ -1,6 +1,6 @@
 package com.example.paiyipai.infrastructure.database.repository;
 
-import com.example.paiyipai.infrastructure.database.entity.DepositRequestEntity;
+import com.example.paiyipai.infrastructure.database.entity.DepositConfirmationEntity;
 import org.assertj.core.api.AssertionsForClassTypes;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -10,26 +10,26 @@ import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import java.time.OffsetDateTime;
 
 @DataJpaTest
-public class DepositRequestRepositoryTest {
+public class DepositConfirmationRepositoryTest {
 
     @Autowired
-    private DepositRequestRepository depositRequestRepository;
+    private DepositConfirmationRepository depositConfirmationRepository;
 
     @AfterEach
     void tearDown() {
-        depositRequestRepository.deleteAll();
+        depositConfirmationRepository.deleteAll();
     }
 
     @Test
     void should_save_entity_correctly_when_save_entity() {
-        DepositRequestEntity original = DepositRequestEntity.builder()
+        var original = DepositConfirmationEntity.builder()
                 .auctionId(10L)
-                .pid("5")
-                .paymentUrl("XXXXXXXXXX")
+                .pid("6")
+                .result("paid")
                 .createdAt(OffsetDateTime.now())
                 .build();
 
-        DepositRequestEntity result = depositRequestRepository.save(original);
+        var result = depositConfirmationRepository.save(original);
 
         AssertionsForClassTypes.assertThat(result)
                 .usingRecursiveComparison()

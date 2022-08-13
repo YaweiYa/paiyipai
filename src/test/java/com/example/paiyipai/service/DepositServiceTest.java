@@ -1,9 +1,12 @@
 package com.example.paiyipai.service;
 
+import com.example.paiyipai.controller.ConfirmDepositRequest;
+import com.example.paiyipai.infrastructure.database.entity.DepositConfirmationEntity;
 import com.example.paiyipai.infrastructure.database.entity.DepositRequestEntity;
+import com.example.paiyipai.infrastructure.database.repository.DepositConfirmationRepository;
+import com.example.paiyipai.infrastructure.database.repository.DepositRequestRepository;
 import com.example.paiyipai.infrastructure.restful.RestClient;
 import com.example.paiyipai.infrastructure.restful.model.PaymentResponse;
-import com.example.paiyipai.infrastructure.database.repository.DepositRequestRepository;
 import com.example.paiyipai.service.exception.DepositRequestFailedException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -12,6 +15,11 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestClientException;
+
+import java.time.Clock;
+import java.time.Instant;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
@@ -30,6 +38,8 @@ class DepositServiceTest {
     public static final long AUCTION_ID = 6L;
     public static final String PID = "30";
     public static final String PAYMENT_URL = "https://mock-payment-url";
+    public static final Clock CLOCK = Clock.fixed(Instant.now(), ZoneId.systemDefault());
+
     private DepositService depositService;
 
     @Mock
@@ -38,9 +48,16 @@ class DepositServiceTest {
     @Mock
     private DepositRequestRepository depositRequestRepository;
 
+    @Mock
+    private DepositConfirmationRepository depositConfirmationRepository;
+
     @BeforeEach
     void setUp() {
-        depositService = new DepositService(restClient, depositRequestRepository, PAYMENT_SERVICE_ENDPOINT);
+        depositService = new DepositService(restClient,
+                depositRequestRepository,
+                depositConfirmationRepository,
+                CLOCK,
+                PAYMENT_SERVICE_ENDPOINT);
     }
 
     @Test
@@ -49,6 +66,7 @@ class DepositServiceTest {
                 .auctionId(AUCTION_ID)
                 .pid(PID)
                 .paymentUrl(PAYMENT_URL)
+                .createdAt(OffsetDateTime.now(CLOCK))
                 .build();
         var savedDepositRequest = DepositRequestEntity.builder()
                 .id(1L)
@@ -83,5 +101,23 @@ class DepositServiceTest {
         assertThatThrownBy(() -> depositService.requestDeposit(AUCTION_ID)).isInstanceOf(DepositRequestFailedException.class);
         verify(restClient, times(1)).post(PAYMENT_SERVICE_URL, PaymentResponse.class);
         verify(depositRequestRepository, times(0)).save(any(DepositRequestEntity.class));
+    }
+
+    @Test
+    void should_saveDepositConfirmation_when_confirmDeposit() {
+        var result = "paid";
+        var confirmDepositRequest = ConfirmDepositRequest.builder().pid(PID).result(result).build();
+        var depositConfirmation = DepositConfirmationEntity.builder()
+                .auctionId(AUCTION_ID)
+                .pid(PID)
+                .result(result)
+                .createdAt(OffsetDateTime.now(CLOCK))
+                .build();
+
+        when(depositConfirmationRepository.save(depositConfirmation)).thenReturn(any(DepositConfirmationEntity.class));
+
+        depositService.confirmDeposit(AUCTION_ID, confirmDepositRequest);
+
+        verify(depositConfirmationRepository, times(1)).save(depositConfirmation);
     }
 }

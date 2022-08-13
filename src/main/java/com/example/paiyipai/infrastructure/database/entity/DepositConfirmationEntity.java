@@ -20,9 +20,8 @@ import static javax.persistence.GenerationType.SEQUENCE;
 @EqualsAndHashCode
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "DepositRequest")
-public class DepositRequestEntity {
-
+@Table(name = "DepositConfirmation")
+public class DepositConfirmationEntity {
     @Id
     @GeneratedValue(strategy = SEQUENCE)
     private Long id;
@@ -31,7 +30,7 @@ public class DepositRequestEntity {
 
     private String pid;
 
-    private String paymentUrl;
+    private String result;
 
     private OffsetDateTime createdAt;
 }
