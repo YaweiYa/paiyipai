@@ -2,21 +2,52 @@ plugins {
     id 'org.springframework.boot' version '2.7.2'
     id 'io.spring.dependency-management' version '1.0.12.RELEASE'
     id 'java'
+    id "io.freefair.lombok" version "6.4.3"
 }
 
-group = 'com.example'
-version = '0.0.1-SNAPSHOT'
-sourceCompatibility = '11'
+project(":") {
+    group = 'com.example'
+    version = '0.0.1-SNAPSHOT'
+    sourceCompatibility = '11'
 
-repositories {
-    mavenCentral()
-}
+    repositories {
+        mavenCentral()
+    }
 
-dependencies {
-    implementation 'org.springframework.boot:spring-boot-starter-web'
-    testImplementation 'org.springframework.boot:spring-boot-starter-test'
-}
+    ext {
+        set('testcontainersVersion', "1.16.2")
+    }
 
-tasks.named('test') {
-    useJUnitPlatform()
+    lombok {
+        version = "1.18.10"
+    }
+
+    dependencies {
+        implementation 'org.springframework.boot:spring-boot-starter-web'
+        implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+        implementation 'org.projectlombok:lombok:1.18.20'
+        implementation 'org.apache.httpcomponents:httpclient:4.5.13'
+        implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
+        compileOnly 'org.projectlombok:lombok'
+        runtimeOnly 'com.h2database:h2'
+        testImplementation 'org.springframework.boot:spring-boot-starter-test'
+        testImplementation 'org.junit.jupiter:junit-jupiter-engine'
+        testImplementation 'org.testcontainers:junit-jupiter'
+        testImplementation 'com.github.tomakehurst:wiremock:2.27.2'
+        testImplementation 'org.testcontainers:mockserver'
+        testImplementation 'org.mock-server:mockserver-client-java:5.13.2'
+        testAnnotationProcessor 'org.projectlombok:lombok'
+        testCompileOnly 'org.projectlombok:lombok'
+    }
+
+    dependencyManagement {
+        imports {
+            mavenBom "org.testcontainers:testcontainers-bom:${testcontainersVersion}"
+        }
+    }
+
+    tasks.named('test') {
+        useJUnitPlatform()
+    }
+
 }
