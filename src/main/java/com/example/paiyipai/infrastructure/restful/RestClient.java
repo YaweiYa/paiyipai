@@ -19,7 +19,10 @@ public class RestClient {
 
     @SneakyThrows
     public <T> ResponseEntity<T> post(String endpoint, Class<T> responseEntityClass) {
-        return restTemplate
-                .exchange(endpoint, HttpMethod.POST, HttpEntity.EMPTY, responseEntityClass);
+        return restTemplate.exchange(endpoint, HttpMethod.POST, HttpEntity.EMPTY, responseEntityClass);
+    }
+
+    public <T> ResponseEntity<T> get(String endpoint, Class<T> responseEntityClass) {
+        return restTemplate.exchange(endpoint, HttpMethod.GET, HttpEntity.EMPTY, responseEntityClass);
     }
 }

@@ -45,4 +45,10 @@ public class DepositController {
         depositService.confirmDeposit(auctionId, confirmDepositRequest);
         return ResponseEntity.ok().build();
     }
+
+    @PostMapping("/reconfirmation")
+    public ResponseEntity<Void> checkThenConfirmDeposit(@PathVariable Long auctionId) {
+        depositService.checkThenConfirmDeposit(auctionId);
+        return ResponseEntity.ok().build();
+    }
 }

@@ -7,6 +7,7 @@ import com.example.paiyipai.infrastructure.database.repository.DepositConfirmati
 import com.example.paiyipai.infrastructure.database.repository.DepositRequestRepository;
 import com.example.paiyipai.infrastructure.restful.RestClient;
 import com.example.paiyipai.infrastructure.restful.model.PaymentResponse;
+import com.example.paiyipai.infrastructure.restful.model.PaymentResultResponse;
 import com.example.paiyipai.service.exception.DepositRequestFailedException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -14,6 +15,8 @@ import org.springframework.web.client.RestClientException;
 
 import java.time.Clock;
 import java.time.OffsetDateTime;
+
+import static java.lang.String.format;
 
 @Service
 public class DepositService {
@@ -70,6 +73,23 @@ public class DepositService {
                 .result(confirmDepositRequest.getResult())
                 .createdAt(OffsetDateTime.now(clock))
                 .build();
+        depositConfirmationRepository.save(depositConfirmation);
+    }
+
+    public void checkThenConfirmDeposit(Long auctionId) {
+        var depositRequest = depositRequestRepository.findByAuctionId(auctionId).get();
+        var paymentResult = restClient.get(
+                        format("%s/payments/%s", paymentServiceEndpoint, depositRequest.getPid()),
+                        PaymentResultResponse.class)
+                .getBody();
+
+        var depositConfirmation = DepositConfirmationEntity.builder()
+                .auctionId(auctionId)
+                .pid(paymentResult.getPid())
+                .result(paymentResult.getResult())
+                .createdAt(OffsetDateTime.now(clock))
+                .build();
+
         depositConfirmationRepository.save(depositConfirmation);
     }
 }

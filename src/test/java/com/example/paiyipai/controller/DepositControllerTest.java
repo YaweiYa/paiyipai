@@ -88,4 +88,13 @@ class DepositControllerTest {
                         .content(new ObjectMapper().registerModule(new JavaTimeModule()).writeValueAsString(confirmDepositRequest)))
                 .andExpect(status().isOk());
     }
+
+    @SneakyThrows
+    @Test
+    void should_return200_when_callReconfirmDepositEndpoint() {
+        doNothing().when(depositService).checkThenConfirmDeposit(AUCTION_ID);
+
+        mockMvc.perform(post(format("/auctions/%s/deposit/reconfirmation", AUCTION_ID)))
+                .andExpect(status().isOk());
+    }
 }
