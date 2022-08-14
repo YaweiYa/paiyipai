@@ -3,6 +3,7 @@ package com.example.paiyipai.controller;
 import com.example.paiyipai.infrastructure.database.repository.DepositRequestRepository;
 import com.example.paiyipai.service.DepositService;
 import com.example.paiyipai.service.exception.DepositRequestFailedException;
+import com.example.paiyipai.service.model.DepositRequest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import lombok.SneakyThrows;
@@ -32,6 +33,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class DepositControllerTest {
 
     private static final Long AUCTION_ID = 6L;
+    private static final Long DEPOSIT_ID = 1L;
+    public static final String PID = "30";
+    public static final String DEPOSIT_PATH = "/auctions/%s/deposits";
 
     @Autowired
     private MockMvc mockMvc;
@@ -51,11 +55,12 @@ class DepositControllerTest {
     @Test
     void should_return200AndPaymentUrl_when_callRequestDepositEndpoint() {
         var captor = ArgumentCaptor.forClass(Long.class);
-        when(depositService.requestDeposit(captor.capture())).thenReturn("mock-payment-url");
+        when(depositService.requestDeposit(captor.capture()))
+                .thenReturn(DepositRequest.builder().id(1L).paymentUrl("mock-payment-url").build());
 
-        mockMvc.perform(post(format("/auctions/%s/deposit", AUCTION_ID)))
+        mockMvc.perform(post(format(DEPOSIT_PATH, AUCTION_ID)))
                 .andExpect(status().isOk())
-                .andExpect(content().json("{\"paymentUrl\":\"mock-payment-url\"}"));
+                .andExpect(content().json("{\"id\": 1,\"paymentUrl\":\"mock-payment-url\"}"));
 
         Long auctionId = captor.getValue();
 
@@ -68,7 +73,7 @@ class DepositControllerTest {
         var captor = ArgumentCaptor.forClass(Long.class);
         when(depositService.requestDeposit(captor.capture())).thenThrow(new DepositRequestFailedException(1L));
 
-        mockMvc.perform(post(format("/auctions/%s/deposit", AUCTION_ID)))
+        mockMvc.perform(post(format(DEPOSIT_PATH, AUCTION_ID)))
                 .andExpect(status().isInternalServerError())
                 .andExpect(content().json("{\"reason\":\"Timeout to get payment URL\"}"));
 
@@ -81,9 +86,9 @@ class DepositControllerTest {
     @Test
     void should_return200_when_callConfirmDepositEndpoint() {
         var confirmDepositRequest = ConfirmDepositRequest.builder().pid("30").result("paid").build();
-        doNothing().when(depositService).confirmDeposit(AUCTION_ID, confirmDepositRequest);
+        doNothing().when(depositService).confirmDeposit(AUCTION_ID, DEPOSIT_ID, confirmDepositRequest);
 
-        mockMvc.perform(post(format("/auctions/%s/deposit/confirmation", AUCTION_ID))
+        mockMvc.perform(post(format("/auctions/%s/deposits/%s/confirmation", AUCTION_ID, DEPOSIT_ID))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(new ObjectMapper().registerModule(new JavaTimeModule()).writeValueAsString(confirmDepositRequest)))
                 .andExpect(status().isOk());
@@ -92,9 +97,9 @@ class DepositControllerTest {
     @SneakyThrows
     @Test
     void should_return200_when_callReconfirmDepositEndpoint() {
-        doNothing().when(depositService).checkThenConfirmDeposit(AUCTION_ID);
+        doNothing().when(depositService).checkThenConfirmDeposit(AUCTION_ID, DEPOSIT_ID);
 
-        mockMvc.perform(post(format("/auctions/%s/deposit/reconfirmation", AUCTION_ID)))
+        mockMvc.perform(post(format("/auctions/%s/deposits/%s/reconfirmation", AUCTION_ID, DEPOSIT_ID)))
                 .andExpect(status().isOk());
     }
 }

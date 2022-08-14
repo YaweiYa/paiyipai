@@ -26,6 +26,8 @@ public class DepositConfirmationEntity {
     @GeneratedValue(strategy = SEQUENCE)
     private Long id;
 
+    private Long depositId;
+
     private Long auctionId;
 
     private String pid;

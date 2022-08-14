@@ -12,12 +12,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
-import static com.example.paiyipai.dto.DepositRequestStatus.FAILED;
-import static com.example.paiyipai.dto.DepositRequestStatus.SUCCESS;
-
 @RequiredArgsConstructor
 @RestController
-@RequestMapping("/auctions/{auctionId}/deposit")
+@RequestMapping("/auctions/{auctionId}/deposits")
 public class DepositController {
 
     private final DepositService depositService;
@@ -26,29 +23,28 @@ public class DepositController {
     @ResponseBody
     public ResponseEntity<DepositRequestDTO> requestDeposit(@PathVariable Long auctionId) {
         try {
-            var paymentUrl = depositService.requestDeposit(auctionId);
+            var depositRequest = depositService.requestDeposit(auctionId);
             return ResponseEntity.ok(DepositRequestDTO.builder()
-                    .status(SUCCESS)
-                    .paymentUrl(paymentUrl)
+                    .id(depositRequest.getId())
+                    .paymentUrl(depositRequest.getPaymentUrl())
                     .build());
         } catch (DepositRequestFailedException ex) {
             return ResponseEntity.internalServerError()
                     .body(DepositRequestDTO.builder()
-                            .status(FAILED)
                             .reason("Timeout to get payment URL")
                             .build());
         }
     }
 
-    @PostMapping("/confirmation")
-    public ResponseEntity<Void> confirmDeposit(@PathVariable Long auctionId, @RequestBody ConfirmDepositRequest confirmDepositRequest) {
-        depositService.confirmDeposit(auctionId, confirmDepositRequest);
+    @PostMapping("/{depositId}/confirmation")
+    public ResponseEntity<Void> confirmDeposit(@PathVariable Long auctionId, @PathVariable Long depositId, @RequestBody ConfirmDepositRequest confirmDepositRequest) {
+        depositService.confirmDeposit(auctionId, depositId, confirmDepositRequest);
         return ResponseEntity.ok().build();
     }
 
-    @PostMapping("/reconfirmation")
-    public ResponseEntity<Void> checkThenConfirmDeposit(@PathVariable Long auctionId) {
-        depositService.checkThenConfirmDeposit(auctionId);
+    @PostMapping("/{depositId}/reconfirmation")
+    public ResponseEntity<Void> checkThenConfirmDeposit(@PathVariable Long auctionId, @PathVariable Long depositId) {
+        depositService.checkThenConfirmDeposit(auctionId, depositId);
         return ResponseEntity.ok().build();
     }
 }

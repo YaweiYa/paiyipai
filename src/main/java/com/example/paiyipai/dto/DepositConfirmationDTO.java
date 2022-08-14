@@ -7,10 +7,7 @@ import lombok.Getter;
 @Builder
 @Getter
 @EqualsAndHashCode
-public class DepositRequestDTO {
+public class DepositConfirmationDTO {
 
-    private Long id;
-    private String paymentUrl;
-    private String reason;
-
+    private String result;
 }

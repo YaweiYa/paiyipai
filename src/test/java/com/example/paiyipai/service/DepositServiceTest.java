@@ -39,6 +39,7 @@ class DepositServiceTest {
     public static final String PAYMENT_SERVICE_ENDPOINT = "https://3rd-party-payment";
     public static final String PAYMENT_SERVICE_URL = PAYMENT_SERVICE_ENDPOINT + "/payments";
     public static final long AUCTION_ID = 6L;
+    private static final Long DEPOSIT_ID = 1L;
     public static final String PID = "30";
     public static final String PAYMENT_URL = "https://mock-payment-url";
     public static final Clock CLOCK = Clock.fixed(Instant.now(), ZoneId.systemDefault());
@@ -67,14 +68,14 @@ class DepositServiceTest {
     @Test
     void should_processDepositRequest_when_requestDeposit() {
         var depositRequest = buildDepositRequest();
-        var savedDepositRequest = buildDepositRequest(1L);
+        var savedDepositRequest = buildDepositRequest(DEPOSIT_ID);
         var paymentResponse = PaymentResponse.builder().pid(PID).paymentUrl(PAYMENT_URL).build();
         when(depositRequestRepository.save(depositRequest)).thenReturn(savedDepositRequest);
         when(restClient.post(PAYMENT_SERVICE_URL, PaymentResponse.class)).thenReturn(ResponseEntity.ok(paymentResponse));
 
         var result = depositService.requestDeposit(AUCTION_ID);
 
-        assertThat(result).isEqualTo(PAYMENT_URL);
+        assertThat(result.getPaymentUrl()).isEqualTo(PAYMENT_URL);
         verify(depositRequestRepository, times(1)).save(depositRequest);
         verify(restClient, times(1)).post(PAYMENT_SERVICE_URL, PaymentResponse.class);
     }
@@ -104,7 +105,7 @@ class DepositServiceTest {
 
         when(depositConfirmationRepository.save(depositConfirmation)).thenReturn(any(DepositConfirmationEntity.class));
 
-        depositService.confirmDeposit(AUCTION_ID, confirmDepositRequest);
+        depositService.confirmDeposit(AUCTION_ID, DEPOSIT_ID, confirmDepositRequest);
 
         verify(depositConfirmationRepository, times(1)).save(depositConfirmation);
     }
@@ -114,14 +115,14 @@ class DepositServiceTest {
         var depositRequest = buildDepositRequest(1L);
         var paymentResponse = PaymentResultResponse.builder().pid(PID).result(RESULT).build();
         var depositConfirmation = buildDepositConfirmation();
-        when(depositRequestRepository.findByAuctionId(AUCTION_ID)).thenReturn(Optional.of(depositRequest));
+        when(depositRequestRepository.findById(DEPOSIT_ID)).thenReturn(Optional.of(depositRequest));
         when(restClient.get(format("%s/payments/%s", PAYMENT_SERVICE_ENDPOINT, depositRequest.getPid()), PaymentResultResponse.class))
                 .thenReturn(ResponseEntity.ok(paymentResponse));
         when(depositConfirmationRepository.save(depositConfirmation)).thenReturn(depositConfirmation);
 
-        depositService.checkThenConfirmDeposit(AUCTION_ID);
+        depositService.checkThenConfirmDeposit(AUCTION_ID, DEPOSIT_ID);
 
-        verify(depositRequestRepository, times(1)).findByAuctionId(AUCTION_ID);
+        verify(depositRequestRepository, times(1)).findById(DEPOSIT_ID);
         verify(restClient, times(1)).get(format("%s/payments/%s", PAYMENT_SERVICE_ENDPOINT, depositRequest.getPid()), PaymentResultResponse.class);
         verify(depositConfirmationRepository, times(1)).save(depositConfirmation);
     }
@@ -148,6 +149,7 @@ class DepositServiceTest {
     private DepositConfirmationEntity buildDepositConfirmation() {
         return DepositConfirmationEntity.builder()
                 .auctionId(AUCTION_ID)
+                .depositId(DEPOSIT_ID)
                 .pid(PID)
                 .result(RESULT)
                 .createdAt(OffsetDateTime.now(CLOCK))

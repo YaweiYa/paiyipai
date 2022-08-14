@@ -9,6 +9,7 @@ import com.example.paiyipai.infrastructure.restful.RestClient;
 import com.example.paiyipai.infrastructure.restful.model.PaymentResponse;
 import com.example.paiyipai.infrastructure.restful.model.PaymentResultResponse;
 import com.example.paiyipai.service.exception.DepositRequestFailedException;
+import com.example.paiyipai.service.model.DepositRequest;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClientException;
@@ -43,7 +44,7 @@ public class DepositService {
         this.paymentServiceEndpoint = paymentServiceEndpoint;
     }
 
-    public String requestDeposit(Long auctionId) {
+    public DepositRequest requestDeposit(Long auctionId) {
         try {
             var response = restClient.post(paymentServiceEndpoint + "/payments", PaymentResponse.class);
 
@@ -51,24 +52,25 @@ public class DepositService {
                 throw new DepositRequestFailedException(auctionId);
             }
 
-            var payment = response.getBody();
-            var depositRequest = DepositRequestEntity.builder()
+            var paymentResponse = response.getBody();
+            var depositRequestEntity = DepositRequestEntity.builder()
                     .auctionId(auctionId)
-                    .pid(payment.getPid())
-                    .paymentUrl(payment.getPaymentUrl())
+                    .pid(paymentResponse.getPid())
+                    .paymentUrl(paymentResponse.getPaymentUrl())
                     .createdAt(OffsetDateTime.now(clock))
                     .build();
-            depositRequestRepository.save(depositRequest);
+            var savedDepositRequestEntity =  depositRequestRepository.save(depositRequestEntity);
 
-            return depositRequest.getPaymentUrl();
+            return DepositRequest.from(savedDepositRequestEntity);
         } catch (RestClientException ex) {
             throw new DepositRequestFailedException(auctionId);
         }
     }
 
-    public void confirmDeposit(Long auctionId, ConfirmDepositRequest confirmDepositRequest) {
+    public void confirmDeposit(Long auctionId, Long depositId, ConfirmDepositRequest confirmDepositRequest) {
         var depositConfirmation = DepositConfirmationEntity.builder()
                 .auctionId(auctionId)
+                .depositId(depositId)
                 .pid(confirmDepositRequest.getPid())
                 .result(confirmDepositRequest.getResult())
                 .createdAt(OffsetDateTime.now(clock))
@@ -76,8 +78,8 @@ public class DepositService {
         depositConfirmationRepository.save(depositConfirmation);
     }
 
-    public void checkThenConfirmDeposit(Long auctionId) {
-        var depositRequest = depositRequestRepository.findByAuctionId(auctionId).get();
+    public void checkThenConfirmDeposit(Long auctionId, Long depositId) {
+        var depositRequest = depositRequestRepository.findById(depositId).get();
         var paymentResult = restClient.get(
                         format("%s/payments/%s", paymentServiceEndpoint, depositRequest.getPid()),
                         PaymentResultResponse.class)
@@ -85,6 +87,7 @@ public class DepositService {
 
         var depositConfirmation = DepositConfirmationEntity.builder()
                 .auctionId(auctionId)
+                .depositId(depositRequest.getId())
                 .pid(paymentResult.getPid())
                 .result(paymentResult.getResult())
                 .createdAt(OffsetDateTime.now(clock))

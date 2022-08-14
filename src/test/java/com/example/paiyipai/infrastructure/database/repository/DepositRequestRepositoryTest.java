@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 
 import java.time.OffsetDateTime;
+import java.util.Optional;
 
 @DataJpaTest
 public class DepositRequestRepositoryTest {
@@ -21,19 +22,36 @@ public class DepositRequestRepositoryTest {
     }
 
     @Test
-    void should_save_entity_correctly_when_save_entity() {
-        DepositRequestEntity original = DepositRequestEntity.builder()
+    void should_saveEntityCorrectly_when_saveEntity() {
+        var original = DepositRequestEntity.builder()
                 .auctionId(10L)
                 .pid("5")
                 .paymentUrl("XXXXXXXXXX")
                 .createdAt(OffsetDateTime.now())
                 .build();
 
-        DepositRequestEntity result = depositRequestRepository.save(original);
+        var result = depositRequestRepository.save(original);
 
         AssertionsForClassTypes.assertThat(result)
                 .usingRecursiveComparison()
                 .ignoringFields("id")
                 .isEqualTo(original);
+    }
+
+    @Test
+    void should_findEntityByIdCorrectly_when_findById() {
+        var original = DepositRequestEntity.builder()
+                .auctionId(10L)
+                .pid("5")
+                .paymentUrl("XXXXXXXXXX")
+                .createdAt(OffsetDateTime.now())
+                .build();
+        var entity = depositRequestRepository.save(original);
+
+        var result = depositRequestRepository.findById(entity.getId());
+
+        AssertionsForClassTypes.assertThat(result)
+                .usingRecursiveComparison()
+                .isEqualTo(Optional.of(entity));
     }
 }
